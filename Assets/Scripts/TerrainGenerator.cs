@@ -4,13 +4,13 @@ using UnityEngine;
 public class Terrain
 {
     private float[] hm;
+    private List<int> playerClicks;
 
     private int nx, ny;
     private float width, height;
     private float maxHeight;
     
     private FastNoiseLite noise;
-    private Mesh mesh;
     
     public Terrain(float width, float height, int nx, int ny, int seed, int octaves, float lacunarity,
         float gain, float scale, float maxHeight)
@@ -30,8 +30,8 @@ public class Terrain
         noise.SetFractalLacunarity(lacunarity);
         noise.SetFractalGain(gain);
         noise.SetFrequency(0.01f * scale);
-        
-        GenerateTerrain();
+
+        playerClicks = new List<int>();
     }
 
     float GetHeight(float x, float y)
@@ -42,6 +42,13 @@ public class Terrain
     int GetIndex(float x, float y)
     {
         return (int)y * nx + (int)x;
+    }
+
+    Vector3 PointInWorld(int index)
+    {
+        float x = index % nx;
+        float z = index / ny;
+        return new Vector3(x, hm[index], z);
     }
 
     int WorldToIndex(Vector3 pos)
@@ -56,17 +63,19 @@ public class Terrain
 
     public void setPlayerClick(Vector3 hitPoint)
     {
-        // compute the hit point in the map
-        mesh.colors[WorldToIndex(hitPoint)] = Color.red;
+        // store the hit point's index in the map
+        Debug.Log(WorldToIndex(hitPoint));
+        playerClicks.Add(WorldToIndex(hitPoint));
     }
     
-    public void GenerateTerrain()
+    public Mesh GenerateTerrain()
     {
-        mesh = new Mesh();
+        Debug.Log("generating terrain");
+        Mesh mesh = new Mesh();
         
-        var vertices = new List<Vector3>();
+        var vertices = new Vector3[nx * ny];
+        var uvs = new Vector2[nx * ny];
         var triangles = new List<int>();
-        var colors = new List<Color>();
         
         float stepX = width / (float)(nx - 1);
         float stepY = height / (float)(ny - 1);
@@ -74,8 +83,8 @@ public class Terrain
         for(int j = 0; j < ny; j++)
             for (int i = 0; i < nx; i++)
             {
-                vertices.Add(new Vector3((float)i * stepX, noise.GetNoise(i, j) * maxHeight, (float)j * stepY));
-                colors.Add(Color.white);
+                vertices[j * nx + i] = new Vector3((float)i * stepX, noise.GetNoise(i, j) * maxHeight, (float)j * stepY);
+                uvs[j * nx + i] = new Vector2(i * stepX, j * stepY);
             }
 
         for(int j = 0; j < nx - 1; j++)
@@ -91,14 +100,33 @@ public class Terrain
                 triangles.Add(index + 1);
             }
         
-        mesh.SetVertices(vertices.ToArray());
-        mesh.SetColors(colors.ToArray());
+        mesh.SetVertices(vertices);
+        mesh.uv = uvs;
         mesh.SetTriangles(triangles.ToArray(), 0);
         mesh.RecalculateNormals();
+
+        return mesh;
     }
 
-    public ref Mesh getMesh()
+    public Texture2D GenerateTexture()
     {
-        return ref mesh;
+        return TextureGenerator.GenerateTexture(hm, nx, ny, playerClicks);
+    }
+
+    public float GetWeight(int source, int dest)
+    {
+        return Vector3.Distance(PointInWorld(source), PointInWorld(dest));
+    }
+
+    public void GenerateRoad(int source, int dest)
+    {
+        // initialize graph
+        GraphNode[] graph = new GraphNode[nx * ny];
+        for(int j = 0; j < ny; j++)
+            for (int i = 0; i < nx; i++)
+            {
+                List<int> neighbors = new List<int>();
+                graph[j * nx + i] = new GraphNode(Mathf.Infinity, 0, neighbors);
+            }
     }
 }

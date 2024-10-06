@@ -25,22 +25,26 @@ public class TerrainManager : MonoBehaviour
     void Awake()
     {
         GenerateTerrain();
+        UpdateModel();
     }
 
     void Update()
     {
-        Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
-        RaycastHit hit;
-
-        if (Physics.Raycast(ray, out hit, Mathf.Infinity))
+        if (Input.GetMouseButtonDown(0))
         {
-            // Check if the hit object is your terrain
-            if (hit.collider.gameObject.CompareTag("Terrain"))
+            Ray ray = Camera.main.ScreenPointToRay(Input.mousePosition);
+            RaycastHit hit;
+
+            if (Physics.Raycast(ray, out hit, Mathf.Infinity))
             {
-                Vector3 hitPoint = hit.point;
-                terrainGenerator.setPlayerClick(hitPoint);
-        
-                terrainObject.GetComponent<MeshFilter>().sharedMesh = terrainGenerator.getMesh();
+                // Check if the hit object is your terrain
+                if (hit.collider.gameObject.CompareTag("Terrain"))
+                {
+                    Vector3 hitPoint = hit.point;
+                    terrainGenerator.setPlayerClick(hitPoint);
+            
+                    UpdateModel();
+                }
             }
         }
     }
@@ -48,7 +52,11 @@ public class TerrainManager : MonoBehaviour
     public void GenerateTerrain()
     {
         terrainGenerator = new Terrain(width, height, nx, ny, seed, octaves, lacunarity, gain, scale, maxHeight);
-        
-        terrainObject.GetComponent<MeshFilter>().sharedMesh = terrainGenerator.getMesh();
+    }
+
+    public void UpdateModel()
+    {
+        terrainObject.GetComponent<MeshFilter>().sharedMesh = terrainGenerator.GenerateTerrain();
+        terrainObject.GetComponent<MeshRenderer>().sharedMaterial.mainTexture = terrainGenerator.GenerateTexture();
     }
 }

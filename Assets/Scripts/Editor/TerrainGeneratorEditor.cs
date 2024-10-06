@@ -10,7 +10,10 @@ public class TerrainManagerEditor : Editor
 
         TerrainManager generator = (TerrainManager) target;
         if (GUILayout.Button("Generate"))
+        {
             generator.GenerateTerrain();
+            generator.UpdateModel();
+        }
     }
 
     private void OnInspectorUpdate() 
