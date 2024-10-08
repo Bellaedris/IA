@@ -5,6 +5,7 @@ public class Terrain
 {
     private float[] hm;
     private List<int> playerClicks;
+    private List<List<int>> paths;
 
     private int nx, ny;
     private float width, height;
@@ -32,6 +33,7 @@ public class Terrain
         noise.SetFrequency(0.01f * scale);
 
         playerClicks = new List<int>();
+        paths = new List<List<int>>();
     }
 
     float GetHeight(float x, float y)
@@ -64,8 +66,9 @@ public class Terrain
     public void setPlayerClick(Vector3 hitPoint)
     {
         // store the hit point's index in the map
-        Debug.Log(WorldToIndex(hitPoint));
         playerClicks.Add(WorldToIndex(hitPoint));
+        if(playerClicks.Count == 2)
+            GenerateRoad(playerClicks[0], playerClicks[1]);
     }
     
     public Mesh GenerateTerrain()
@@ -110,7 +113,7 @@ public class Terrain
 
     public Texture2D GenerateTexture()
     {
-        return TextureGenerator.GenerateTexture(hm, nx, ny, playerClicks);
+        return TextureGenerator.GenerateTexture(hm, nx, ny, playerClicks, paths);
     }
 
     public float GetWeight(int source, int dest)
@@ -122,11 +125,51 @@ public class Terrain
     {
         // initialize graph
         GraphNode[] graph = new GraphNode[nx * ny];
-        for(int j = 0; j < ny; j++)
-            for (int i = 0; i < nx; i++)
+        for(int j = 1; j < ny - 1; j++)
+            for (int i = 1; i < nx - 1; i++)
             {
+                int index = (j * nx + i);
                 List<int> neighbors = new List<int>();
-                graph[j * nx + i] = new GraphNode(Mathf.Infinity, 0, neighbors);
+                for(int x = -1; x <= 1; x++)
+                    for(int y = -1; y <= 1; y++)
+                        neighbors.Add(index + x + (y * nx));
+                graph[index] = new GraphNode(Mathf.Infinity, 0, neighbors, index);
             }
+        graph[source].cost = 0;
+        
+        // dijkstra: we setup a list of graph to process
+        var queue = new Heap<GraphNode>((a, b) => a.cost.CompareTo(b.cost));
+        queue.Push(graph[source]);
+        while (queue.Count > 0)
+        {
+            GraphNode current = queue.Pop();
+            if (current.index == dest)
+                break;
+            
+            foreach (int neighbor in current.adjacencies)
+            {
+                GraphNode node = graph[neighbor];
+                if (node.visited)
+                    continue;
+                
+                float cost = current.cost + GetWeight(current.index, neighbor);
+                if (cost < node.cost)
+                {
+                    node.cost = cost;
+                    node.previous = current.index;
+                    queue.Push(graph[neighbor]);
+                }
+            }
+        }
+        
+        // the path is complete, we can trace it
+        GraphNode cur = graph[dest];
+        List<int> path = new List<int>();
+        while (cur.index != source)
+        {
+            path.Add(cur.index);
+            cur = graph[cur.previous];
+        }
+        paths.Add(path);
     }
 }

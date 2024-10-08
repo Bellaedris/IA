@@ -4,14 +4,17 @@ using UnityEngine;
 
 public class GraphNode
 {
-    float cost;
-    int previous;
-    List<int> adjacencies;
-    public GraphNode(float cost, int previous, List<int> adjacencies)
+    public float cost;
+    public int index;
+    public int previous;
+    public List<int> adjacencies;
+    public bool visited;
+    public GraphNode(float cost, int previous, List<int> adjacencies, int index)
     {
         this.cost = cost;
         this.previous = previous;
         this.adjacencies = adjacencies;
+        this.index = index;
     }
 }
 
