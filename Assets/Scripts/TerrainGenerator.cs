@@ -1,9 +1,14 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 public class Terrain
 {
+    // terrain datas
     private float[] hm;
+    private float[] slope;
+    private float maxSlope;
+    
     private List<int> playerClicks;
     private List<List<int>> paths;
 
@@ -17,6 +22,8 @@ public class Terrain
         float gain, float scale, float maxHeight)
     {
         hm = new float[nx * ny];
+        slope = new float[nx * ny];
+        maxSlope = 0;
         this.nx = nx;
         this.ny = ny;
         this.width = width;
@@ -34,11 +41,32 @@ public class Terrain
 
         playerClicks = new List<int>();
         paths = new List<List<int>>();
+
+        for(int j = 0; j < ny; j++)
+        for (int i = 0; i < nx; i++)
+        {
+            hm[j * nx + i] = noise.GetNoise(i, j);
+        }
+
+        ComputeSlope();
     }
 
-    float GetHeight(float x, float y)
+    float GetHeight(int x, int y)
     {
         return hm[GetIndex(x, y)];
+    }
+
+    Vector2 GetGradient(int x, int y)
+    {
+        float gradX = (hm[GetIndex(x + 1, y)] - hm[GetIndex(x - 1, y)]) / (2 * width / (float)nx);
+        float gradY = (hm[GetIndex(x, y + 1)] - hm[GetIndex(x, y - 1)]) / (2 * height / (float)ny);
+        
+        return new Vector2(gradX, gradY);
+    }
+
+    float GetSlope(int x, int y)
+    {
+        return GetGradient(x, y).magnitude;
     }
 
     int GetIndex(float x, float y)
@@ -57,11 +85,6 @@ public class Terrain
     {
         return GetIndex(pos.x * (float)nx, pos.z * (float)ny);
     }
-
-    // float GetColor(int x, int y)
-    // {
-    //     
-    // }
 
     public void setPlayerClick(Vector3 hitPoint)
     {
@@ -86,7 +109,7 @@ public class Terrain
         for(int j = 0; j < ny; j++)
             for (int i = 0; i < nx; i++)
             {
-                vertices[j * nx + i] = new Vector3((float)i * stepX, noise.GetNoise(i, j) * maxHeight, (float)j * stepY);
+                vertices[j * nx + i] = new Vector3((float)i * stepX, 0, (float)j * stepY);
                 uvs[j * nx + i] = new Vector2(i * stepX, j * stepY);
             }
 
@@ -113,12 +136,16 @@ public class Terrain
 
     public Texture2D GenerateTexture()
     {
-        return TextureGenerator.GenerateTexture(hm, nx, ny, playerClicks, paths);
+        return TextureGenerator.GenerateTexture(ref hm, ref slope, maxSlope, nx, ny, playerClicks, paths);
     }
 
     public float GetWeight(int source, int dest)
     {
-        return Vector3.Distance(PointInWorld(source), PointInWorld(dest));
+        // weight depends on the distance and the height (water has a higher weight
+        float weight = Vector3.Distance(PointInWorld(source), PointInWorld(dest)) + slope[dest];
+        if (hm[dest] < -.5f)
+            weight += 10f;
+        return weight;
     }
 
     public void GenerateRoad(int source, int dest)
@@ -143,13 +170,14 @@ public class Terrain
         while (queue.Count > 0)
         {
             GraphNode current = queue.Pop();
-            if (current.index == dest)
-                break;
+            if (current.visited)
+                continue;
             
             foreach (int neighbor in current.adjacencies)
             {
                 GraphNode node = graph[neighbor];
-                if (node.visited)
+                // we're on the borders, ignore
+                if (node == null)
                     continue;
                 
                 float cost = current.cost + GetWeight(current.index, neighbor);
@@ -160,6 +188,7 @@ public class Terrain
                     queue.Push(graph[neighbor]);
                 }
             }
+            current.visited = true;
         }
         
         // the path is complete, we can trace it
@@ -171,5 +200,18 @@ public class Terrain
             cur = graph[cur.previous];
         }
         paths.Add(path);
+    }
+
+    private void ComputeSlope()
+    {
+        float curSlope;
+        for(int j = 1; j < ny - 1; j++)
+        for (int i = 1; i < nx - 1; i++)
+        {
+            curSlope = GetSlope(i, j);
+            slope[GetIndex(i, j)] = GetSlope(i, j);
+            if (curSlope > maxSlope)
+                maxSlope = curSlope;
+        }
     }
 }
