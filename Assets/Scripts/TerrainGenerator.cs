@@ -91,7 +91,11 @@ public class Terrain
         // store the hit point's index in the map
         playerClicks.Add(WorldToIndex(hitPoint));
         if(playerClicks.Count == 2)
+        {
             GenerateRoad(playerClicks[0], playerClicks[1]);
+            GenerateRoadAStar(playerClicks[0], playerClicks[1]);
+            playerClicks.Clear();
+        }
     }
     
     public Mesh GenerateTerrain()
@@ -139,13 +143,20 @@ public class Terrain
         return TextureGenerator.GenerateTexture(ref hm, ref slope, maxSlope, nx, ny, playerClicks, paths);
     }
 
+    public float GetWeightGlobal(int source, int neigh, int dest)
+    {
+        // weight depends on the distance and the height (water has a higher weight)
+        float distToDest = Vector3.Distance(PointInWorld(source), PointInWorld(dest));
+        
+        float weight = Vector3.Distance(PointInWorld(source), PointInWorld(neigh)) + slope[neigh];
+        return hm[dest] < -.5f ? Mathf.Infinity : weight + distToDest;
+    }
+    
     public float GetWeight(int source, int dest)
     {
-        // weight depends on the distance and the height (water has a higher weight
+        // weight depends on the distance, the height difference and the slope (water has a higher weight)
         float weight = Vector3.Distance(PointInWorld(source), PointInWorld(dest)) + slope[dest];
-        if (hm[dest] < -.5f)
-            weight += 10f;
-        return weight;
+        return hm[dest] < -.5f ? Mathf.Infinity : weight;
     }
 
     public void GenerateRoad(int source, int dest)
@@ -163,15 +174,22 @@ public class Terrain
                 graph[index] = new GraphNode(Mathf.Infinity, 0, neighbors, index);
             }
         graph[source].cost = 0;
+
+        float start = Time.realtimeSinceStartup;
         
         // dijkstra: we setup a list of graph to process
         var queue = new Heap<GraphNode>((a, b) => a.cost.CompareTo(b.cost));
         queue.Push(graph[source]);
+        int visited = 0;
         while (queue.Count > 0)
         {
             GraphNode current = queue.Pop();
+            visited++;
             if (current.visited)
                 continue;
+
+            if (current.index == dest)
+                break;
             
             foreach (int neighbor in current.adjacencies)
             {
@@ -200,6 +218,73 @@ public class Terrain
             cur = graph[cur.previous];
         }
         paths.Add(path);
+
+        float elapsed = Time.realtimeSinceStartup - start;
+        Debug.Log("Path complete in " + elapsed + "s after visiting " + visited + " nodes.");
+    }
+    
+    public void GenerateRoadAStar(int source, int dest)
+    {
+        // initialize graph
+        GraphNode[] graph = new GraphNode[nx * ny];
+        for(int j = 1; j < ny - 1; j++)
+            for (int i = 1; i < nx - 1; i++)
+            {
+                int index = (j * nx + i);
+                List<int> neighbors = new List<int>();
+                for(int x = -1; x <= 1; x++)
+                    for(int y = -1; y <= 1; y++)
+                        neighbors.Add(index + x + (y * nx));
+                graph[index] = new GraphNode(Mathf.Infinity, 0, neighbors, index);
+            }
+        graph[source].cost = 0;
+
+        float start = Time.realtimeSinceStartup;
+        
+        // dijkstra: we setup a list of graph to process
+        var queue = new Heap<GraphNode>((a, b) => a.cost.CompareTo(b.cost));
+        queue.Push(graph[source]);
+        int visited = 0;
+        while (queue.Count > 0)
+        {
+            GraphNode current = queue.Pop();
+            visited++;
+            if (current.visited)
+                continue;
+            
+            if (current.index == dest)
+                break;
+            
+            foreach (int neighbor in current.adjacencies)
+            {
+                GraphNode node = graph[neighbor];
+                // we're on the borders, ignore
+                if (node == null)
+                    continue;
+                
+                float cost = current.cost + GetWeightGlobal(current.index, neighbor, dest);
+                if (cost < node.cost)
+                {
+                    node.cost = cost;
+                    node.previous = current.index;
+                    queue.Push(graph[neighbor]);
+                }
+            }
+            current.visited = true;
+        }
+        
+        // the path is complete, we can trace it
+        GraphNode cur = graph[dest];
+        List<int> path = new List<int>();
+        while (cur.index != source)
+        {
+            path.Add(cur.index);
+            cur = graph[cur.previous];
+        }
+        paths.Add(path);
+
+        float elapsed = Time.realtimeSinceStartup - start;
+        Debug.Log("Path complete in " + elapsed + "s after visiting " + visited + " nodes.");
     }
 
     private void ComputeSlope()
