@@ -11,9 +11,9 @@ GameObject:
   - component: {fileID: 9134869062112146504}
   - component: {fileID: 3534889611694025566}
   - component: {fileID: 6571434590847174635}
-  - component: {fileID: 4391904939409039031}
   - component: {fileID: 7183631868775732053}
   - component: {fileID: 5634441833070761769}
+  - component: {fileID: 7221598023673814492}
   m_Layer: 0
   m_Name: Plane
   m_TagString: Tile
@@ -86,21 +86,6 @@ MeshRenderer:
   m_SortingLayer: 0
   m_SortingOrder: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!114 &4391904939409039031
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4416939645953178997}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: a7ef13842687bea4ab5355d51199061a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  type: 0
-  _x: 0
-  _y: 0
 --- !u!54 &7183631868775732053
 Rigidbody:
   m_ObjectHideFlags: 0
@@ -149,3 +134,20 @@ BoxCollider:
   serializedVersion: 3
   m_Size: {x: 10, y: 5, z: 10}
   m_Center: {x: 0, y: 2.5, z: 0}
+--- !u!114 &7221598023673814492
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4416939645953178997}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e6d7ebb1c9ea4ff439a64185e950c60e, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  emptyMaterial: {fileID: 2100000, guid: 41812487841898646b8f12dc0735ada6, type: 2}
+  laserMaterial: {fileID: 2100000, guid: e910a1b95dc19084bb14b0dcc245a721, type: 2}
+  type: 0
+  _x: 0
+  _y: 0
