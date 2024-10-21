@@ -5,9 +5,11 @@ using Utils;
 public class Agent : MonoBehaviour, IPositionObserver
 {
     public float speed = 1f;
+    public bool useAStar = false;
     
     private int _currentNodeIndex;
     private float _timeSinceNodeEnter;
+    private float _currentSpeed;
     
     private Tile _playerTile;
     private Tile _currentTile;
@@ -29,7 +31,7 @@ public class Agent : MonoBehaviour, IPositionObserver
 
         if (transform.position != _path[_currentNodeIndex].transform.position)
         {
-            transform.position = Vector3.Lerp(transform.position, _path[_currentNodeIndex].transform.position, _timeSinceNodeEnter);
+            transform.position = Vector3.Lerp(transform.position, _path[_currentNodeIndex].transform.position, _timeSinceNodeEnter * _currentSpeed);
         }
         else
         {
@@ -46,7 +48,10 @@ public class Agent : MonoBehaviour, IPositionObserver
         if (!_currentTile)
             return;
         
-        _path = PathFinder.GeneratePath(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+        if(useAStar)
+            _path = PathFinder.GeneratePathAStar(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+        else
+            _path = PathFinder.GeneratePath(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
         _currentNodeIndex = 0;
     }
     
@@ -65,6 +70,19 @@ public class Agent : MonoBehaviour, IPositionObserver
             _currentTile = other.GetComponent<Tile>();
             if (_path == null && _playerTile != null)
                 Update(_playerTile);
+
+            switch (_currentTile.type)
+            {
+                case Tile.TileType.Laser:
+                    _currentSpeed = speed * .1f;
+                    break;
+                case Tile.TileType.Hangar:
+                    _currentSpeed = speed * .3f;
+                    break;
+                default:
+                    _currentSpeed = speed;
+                    break;
+            }
         }
     }
 }

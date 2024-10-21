@@ -30,19 +30,30 @@ public class TileManager : MonoBehaviour
             _tiles[x, y] = tile;
         }
 
+        // add all 8-neighbors
         foreach (var tile in tiles)
         {
             int x = tile.x;
             int y = tile.y;
             List<Tile> neighbours = new List<Tile>();
-            if (x > 0)
-                neighbours.Add(_tiles[x - 1, y]);
-            if (x < mapSize - 1)
-                neighbours.Add(_tiles[x + 1, y]);
-            if (y > 0)
-                neighbours.Add(_tiles[x, y - 1]);
-            if (y < mapSize - 1)
-                neighbours.Add(_tiles[x, y + 1]);
+
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dy = -1; dy <= 1; dy++)
+                {
+                    if (dx == 0 && dy == 0)
+                        continue;
+
+                    int nx = x + dx;
+                    int ny = y + dy;
+
+                    if (nx >= 0 && nx < mapSize && ny >= 0 && ny < mapSize)
+                    {
+                        neighbours.Add(_tiles[nx, ny]);
+                    }
+                }
+            }
+
             _neighbours[_tiles[x, y]] = neighbours;
         }
     }

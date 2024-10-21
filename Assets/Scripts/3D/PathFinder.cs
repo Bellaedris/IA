@@ -49,7 +49,7 @@ public class PathFinder
         path.Add(start);
 
         float elapsed = Time.realtimeSinceStartup - startTime;
-        Debug.Log("Path complete in " + elapsed + "s after visiting " + visited + " nodes.");
+        Debug.Log("Path complete (Dijkstra) in " + elapsed + "s after visiting " + visited + " nodes.");
         
         return path;
     }
@@ -79,7 +79,8 @@ public class PathFinder
                 {
                     costToTile[neighbor] = cost;
                     predecessors[neighbor] = current;
-                    queue.Enqueue(neighbor, cost);
+                    // we add a heuristic to our priority queue, here the distance to the goal. It probably should be weighted to suit our needs
+                    queue.Enqueue(neighbor, cost + Vector3.Distance(current.transform.position, end.transform.position));
                 }
             }
         }
@@ -98,7 +99,7 @@ public class PathFinder
         path.Add(start);
 
         float elapsed = Time.realtimeSinceStartup - startTime;
-        Debug.Log("Path complete in " + elapsed + "s after visiting " + visited + " nodes.");
+        Debug.Log("Path complete (A*) in " + elapsed + "s after visiting " + visited + " nodes.");
         
         return path;
     }
