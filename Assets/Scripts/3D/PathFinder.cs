@@ -49,7 +49,7 @@ public class PathFinder
         path.Add(start);
 
         float elapsed = Time.realtimeSinceStartup - startTime;
-        Debug.Log("Path complete (Dijkstra) in " + elapsed + "s after visiting " + visited + " nodes.");
+        //Debug.Log("Path complete (Dijkstra) in " + elapsed + "s after visiting " + visited + " nodes.");
         
         return path;
     }
@@ -99,7 +99,7 @@ public class PathFinder
         path.Add(start);
 
         float elapsed = Time.realtimeSinceStartup - startTime;
-        Debug.Log("Path complete (A*) in " + elapsed + "s after visiting " + visited + " nodes.");
+        //Debug.Log("Path complete (A*) in " + elapsed + "s after visiting " + visited + " nodes.");
         
         return path;
     }
