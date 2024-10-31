@@ -32,6 +32,7 @@ public class Agent : MonoBehaviour, IPositionObserver
         if (transform.position != _path[_currentNodeIndex].transform.position)
         {
             transform.position = Vector3.Lerp(transform.position, _path[_currentNodeIndex].transform.position, _timeSinceNodeEnter * _currentSpeed);
+            transform.LookAt(_playerTile.transform.position);
         }
         else
         {
@@ -48,10 +49,16 @@ public class Agent : MonoBehaviour, IPositionObserver
         if (!_currentTile)
             return;
         
+        List<Tile> path;
         if(useAStar)
-            _path = PathFinder.GeneratePathAStar(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+            path = PathFinder.GeneratePathAStar(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
         else
-            _path = PathFinder.GeneratePath(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+            path = PathFinder.GeneratePath(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+
+        if (path == null)
+            return;
+            
+        _path = path;
         _currentNodeIndex = 0;
     }
     

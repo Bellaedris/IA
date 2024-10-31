@@ -6,11 +6,14 @@ public class GameManager : MonoBehaviour
 {
     
     public TileManager tileManager;
-    public Agent agent;
-    public PlayerController player;
 
     private static GameManager _instance;
     public static GameManager Instance => _instance;
+
+    private int _numberOfkeysObtained = 0;
+    private int _numberOfKeysTotal;
+    
+    private PlayerController _player;
 
     // Start is called before the first frame update
     void Start()
@@ -20,13 +23,22 @@ public class GameManager : MonoBehaviour
             Destroy(this);
             return;
         }
-        else
-            _instance = this;
 
-        player = FindObjectOfType<PlayerController>();
+        _instance = this;
+
+        _player = FindObjectOfType<PlayerController>();
         foreach (var agent in FindObjectsByType<Agent>(FindObjectsInactive.Exclude, FindObjectsSortMode.None))
         {
-            player.RegisterObserver(agent);
+            _player.RegisterObserver(agent);
         }
+
+        _numberOfKeysTotal = FindObjectsByType<Key>(FindObjectsInactive.Exclude, FindObjectsSortMode.None).Length;
+    }
+
+    public void KeyObtained()
+    {
+        _numberOfkeysObtained++;
+        if (_numberOfkeysObtained == _numberOfKeysTotal)
+            Debug.Log("You won");
     }
 }
