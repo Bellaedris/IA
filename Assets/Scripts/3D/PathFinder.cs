@@ -30,7 +30,8 @@ public class PathFinder
                 {
                     costToTile[neighbor] = cost;
                     predecessors[neighbor] = current;
-                    queue.Enqueue(neighbor, cost);
+                    if (neighbor.type != Tile.TileType.Wall && !neighbor._occupied)
+                        queue.Enqueue(neighbor, cost);
                 }
             }
         }
@@ -81,7 +82,7 @@ public class PathFinder
                     predecessors[neighbor] = current;
                     // we add a heuristic to our priority queue, here the distance to the goal. It probably should be weighted to suit our needs
                     // we also only add tiles that are reacheable: not occupied and not a wall
-                    if (neighbor.type != Tile.TileType.Wall )
+                    if (neighbor.type != Tile.TileType.Wall && !neighbor._occupied)
                         queue.Enqueue(neighbor, cost + Vector3.Distance(current.transform.position, end.transform.position));
                 }
             }

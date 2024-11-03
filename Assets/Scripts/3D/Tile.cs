@@ -17,11 +17,11 @@ public class Tile : MonoBehaviour
     public Material laserMaterial;
     public GameObject wall;
     public GameObject hangar;
+    public GameObject pathIndicator;
 
     public TileType type;
 
     public int _x, _y;
-    
     
     public bool _occupied;
     
@@ -83,5 +83,20 @@ public class Tile : MonoBehaviour
                 renderer.sharedMaterial = laserMaterial;
                 break;
         }
+    }
+
+    private void OnTriggerEnter(Collider other)
+    {
+    }
+
+    private void OnTriggerExit(Collider other)
+    {
+        // if (other.CompareTag("Agent"))
+        //     _occupied = false;
+    }
+
+    public void ToggleIndicator()
+    {
+        pathIndicator.SetActive(!pathIndicator.activeSelf);
     }
 }

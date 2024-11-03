@@ -29,9 +29,37 @@ public class TileManager : MonoBehaviour
             
             _tiles[x, y] = tile;
         }
+        
+        // we only add 4 neighbors since 8 neighbors leads to funny things like glitching through walls with diagonals
+        Add4Neighbors();
+    }
 
+    public void Add4Neighbors()
+    {
+        // add 4-neighbors
+        foreach (var tile in _tiles)
+        {
+            int x = tile.x;
+            int y = tile.y;
+            List<Tile> neighbours = new List<Tile>();
+            
+            if (x > 0)
+                neighbours.Add(_tiles[x - 1, y]);
+            if (y > 0)
+                neighbours.Add(_tiles[x, y - 1]);
+            if (x < mapSize - 1)
+                neighbours.Add(_tiles[x + 1, y]);
+            if(y < mapSize - 1)
+                neighbours.Add(_tiles[x, y + 1]);
+            
+            _neighbours[_tiles[x, y]] = neighbours;
+        }
+    }
+
+    public void Add8Neighbors()
+    {
         // add all 8-neighbors
-        foreach (var tile in tiles)
+        foreach (var tile in _tiles)
         {
             int x = tile.x;
             int y = tile.y;

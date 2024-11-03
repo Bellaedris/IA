@@ -15,22 +15,16 @@ public class Agent : MonoBehaviour, IPositionObserver
     private Tile _currentTile;
     
     List<Tile> _path;
-    
-    // Start is called before the first frame update
-    void Start()
-    {
-        
-    }
 
     // Update is called once per frame
     void Update()
     {
-        _timeSinceNodeEnter += Time.deltaTime;
         if (_path == null)
             return;
 
         if (transform.position != _path[_currentNodeIndex].transform.position)
         {
+            _timeSinceNodeEnter += Time.deltaTime;
             transform.position = Vector3.Lerp(transform.position, _path[_currentNodeIndex].transform.position, _timeSinceNodeEnter * _currentSpeed);
             transform.LookAt(_playerTile.transform.position);
         }
@@ -49,6 +43,14 @@ public class Agent : MonoBehaviour, IPositionObserver
         if (!_currentTile)
             return;
         
+        // deactivate all indicators on old path
+        if (_path != null)
+            foreach (Tile t in _path)
+            {
+                t.ToggleIndicator();
+            }
+        
+        
         List<Tile> path;
         if(useAStar)
             path = PathFinder.GeneratePathAStar(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
@@ -60,6 +62,12 @@ public class Agent : MonoBehaviour, IPositionObserver
             
         _path = path;
         _currentNodeIndex = 0;
+        
+        // activate all in new path
+        foreach (Tile t in _path)
+        {
+            t.ToggleIndicator();
+        }
     }
     
     private void OnDestroy()
@@ -90,6 +98,12 @@ public class Agent : MonoBehaviour, IPositionObserver
                     _currentSpeed = speed;
                     break;
             }
+            //_currentTile._occupied = true;
         }
+    }
+
+    public Tile GetCurrentTile()
+    {
+        return _currentTile;
     }
 }
