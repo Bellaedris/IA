@@ -87,12 +87,14 @@ public class Tile : MonoBehaviour
 
     private void OnTriggerEnter(Collider other)
     {
+        // if (other.CompareTag("Agent"))
+        //     _occupied = true;
     }
 
     private void OnTriggerExit(Collider other)
     {
-        // if (other.CompareTag("Agent"))
-        //     _occupied = false;
+        if (other.CompareTag("Agent"))
+            _occupied = false;
     }
 
     public void ToggleIndicator()

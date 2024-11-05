@@ -14,6 +14,7 @@ public class PlayerController : MonoBehaviour, IPositionSubject
 
     private float _currentRotation;
     private bool _grounded;
+    private bool _isGameOver = false;
     
     private GameManager _gm;
     private CharacterController _cc;
@@ -31,6 +32,9 @@ public class PlayerController : MonoBehaviour, IPositionSubject
     // Update is called once per frame
     void Update()
     {
+        if (_isGameOver)
+            return;
+        
         Vector3 direction = new Vector3(Input.GetAxis("Horizontal"), 0, Input.GetAxis("Vertical")).normalized;
         Vector3 movement = Vector3.zero;
         
@@ -67,6 +71,11 @@ public class PlayerController : MonoBehaviour, IPositionSubject
     {
         if (other.CompareTag("Tile"))
             Notify(other.GetComponent<Tile>());
+        if (other.CompareTag("Agent"))
+        {
+            GameManager.Instance.ShowMessage("Game Over");
+            _isGameOver = true;
+        }
     }
 
     public void RegisterObserver(IPositionObserver observer)

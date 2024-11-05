@@ -46,28 +46,19 @@ public class Agent : MonoBehaviour, IPositionObserver
         // deactivate all indicators on old path
         if (_path != null)
             foreach (Tile t in _path)
-            {
                 t.ToggleIndicator();
-            }
         
-        
-        List<Tile> path;
-        if(useAStar)
-            path = PathFinder.GeneratePathAStar(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
-        else
-            path = PathFinder.GeneratePath(_playerTile, _currentTile, GameManager.Instance.tileManager.Neighbours);
+        List<Tile> path = GameManager.Instance.GeneratePath(_playerTile, _currentTile, useAStar);
 
         if (path == null)
             return;
-            
+          
         _path = path;
         _currentNodeIndex = 0;
         
         // activate all in new path
         foreach (Tile t in _path)
-        {
             t.ToggleIndicator();
-        }
     }
     
     private void OnDestroy()
@@ -83,7 +74,7 @@ public class Agent : MonoBehaviour, IPositionObserver
         if (other.CompareTag("Tile"))
         {
             _currentTile = other.GetComponent<Tile>();
-            if (_path == null && _playerTile != null)
+            if (_playerTile != null)
                 Update(_playerTile);
 
             switch (_currentTile.type)
@@ -98,7 +89,6 @@ public class Agent : MonoBehaviour, IPositionObserver
                     _currentSpeed = speed;
                     break;
             }
-            //_currentTile._occupied = true;
         }
     }
 
