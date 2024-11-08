@@ -1,0 +1,78 @@
+// Each #kernel tells which function to compile; you can have many kernels
+#pragma kernel CSMain
+
+// Create a RenderTexture with enableRandomWrite flag and set it
+// with cs.SetTexture
+RWTexture2D<float4> Result;
+
+struct Boid
+{
+    float3 position, direction;
+    float3 cohesion, center, align, separation;
+};
+RWStructuredBuffer<Boid> boids;
+
+int boidCount;
+float separationModifyer;
+float cohesionModifyer;
+float alignModifyer;
+float centerModifyer;
+float deltaTime;
+float3 attractor;
+
+float speed;
+float rotationSpeed;
+float repulsionRadius;
+float flockRadius;
+
+float sqrDist(float3 a, float3 b)
+{
+    float3 ab = a - b;
+    return dot(ab, ab);
+}
+
+[numthreads(64,1,1)]
+void CSMain (uint3 id : SV_DispatchThreadID)
+{
+    Boid b = boids[id.x];
+    
+    b.cohesion = float3(0.f, 0., 0.f); // move towards the center of the boid
+    b.align = float3(0.f, 0., 0.f); // match the velocity of the boids
+    b.separation = float3(0.f, 0., 0.f); // stay away from other boids
+    b.center = (attractor - b.position) * centerModifyer; // stay wear the middle of the bounds
+
+    int nearby = 1;
+    for(int i = 0; i < boidCount; i++)
+    {
+        if(i == id.x)
+            continue;
+        
+        Boid other = boids[i];
+        float dist = sqrDist(other.position, b.position);
+        if (dist < flockRadius * flockRadius)
+        {
+            nearby += 1;
+            b.cohesion += other.position;
+            b.align += other.direction;
+
+            float3 separationVector = float3(0.f, 0.f, 0.f);
+            if(dist < repulsionRadius * repulsionRadius)
+                b.separation += b.position - other.position;
+        }
+    }
+
+    float mean = 1.f / nearby;
+    b.cohesion *= mean;
+    b.cohesion = normalize((b.cohesion - b.position)) * cohesionModifyer;
+    b.align *= mean * alignModifyer;
+    b.separation *= separationModifyer;
+
+    //float3 direction = normalize(b.cohesion + b.align + b.separation + b.center);
+    
+    // float ip = exp(-1.f * deltaTime);
+    // b.direction = lerp((direction), normalize(b.direction), ip);
+    
+    // b.position += deltaTime * speed * b.direction;
+
+    boids[id.x] = b;
+}
