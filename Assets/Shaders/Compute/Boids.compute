@@ -7,7 +7,7 @@ RWTexture2D<float4> Result;
 
 struct Boid
 {
-    float3 position, direction;
+    float3 position, direction, velocity;
     float3 cohesion, center, align, separation;
 };
 RWStructuredBuffer<Boid> boids;
@@ -21,7 +21,6 @@ float deltaTime;
 float3 attractor;
 
 float speed;
-float rotationSpeed;
 float repulsionRadius;
 float flockRadius;
 
@@ -39,7 +38,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     b.cohesion = float3(0.f, 0., 0.f); // move towards the center of the boid
     b.align = float3(0.f, 0., 0.f); // match the velocity of the boids
     b.separation = float3(0.f, 0., 0.f); // stay away from other boids
-    b.center = (attractor - b.position) * centerModifyer; // stay wear the middle of the bounds
+    b.center = (attractor - b.position) * centerModifyer; // stay near the middle of the bounds
 
     int nearby = 1;
     for(int i = 0; i < boidCount; i++)
@@ -55,9 +54,8 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             b.cohesion += other.position;
             b.align += other.direction;
 
-            float3 separationVector = float3(0.f, 0.f, 0.f);
             if(dist < repulsionRadius * repulsionRadius)
-                b.separation += b.position - other.position;
+                b.separation += (b.position - other.position) / dist;
         }
     }
 

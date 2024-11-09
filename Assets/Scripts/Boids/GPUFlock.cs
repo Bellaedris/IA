@@ -7,7 +7,7 @@ using Random = UnityEngine.Random;
 
 public struct BoidGPU
 {
-    public Vector3 position, direction;
+    public Vector3 position, direction, velocity;
     public Vector3 cohesion, center, align, separation;
 }
 
@@ -20,9 +20,10 @@ public class GPUFlock : MonoBehaviour
     public float spawnRadius = 10f;
     public BoxCollider bounds;
     public LayerMask obstacleMask;
-    
-    public float speed = 5f;
-    public float rotationSpeed = 1f;
+
+    public float minSpeed = 1f;
+    public float maxSpeed = 5f;
+    public float accelerationModifyer = 10f;
     public float repulsionRadius = 1f;
     public float flockRadius = 5f;
     public float obstacleRadius = 2f;
@@ -69,7 +70,7 @@ public class GPUFlock : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        ComputeBuffer boidsBuffer = new ComputeBuffer(numberOfBoids, 72);
+        ComputeBuffer boidsBuffer = new ComputeBuffer(numberOfBoids, 84);
         boidsBuffer.SetData(_boids);
         
         computeShader.SetBuffer(_kernelIndex, "boids", boidsBuffer);
@@ -79,21 +80,20 @@ public class GPUFlock : MonoBehaviour
         computeShader.SetFloat("alignModifyer", this.alignModifyer);
         computeShader.SetFloat("centerModifyer", this.centerModifyer);
         computeShader.SetFloat("deltaTime", Time.deltaTime);
-        computeShader.SetFloat("speed", this.speed);
-        computeShader.SetFloat("rotationSpeed", this.rotationSpeed);
+        computeShader.SetFloat("speed", this.maxSpeed);
         computeShader.SetFloat("repulsionRadius", this.repulsionRadius);
         computeShader.SetFloat("flockRadius", this.flockRadius);
         computeShader.SetVector("attractor", attractor.transform.position);
         
-        computeShader.Dispatch(_kernelIndex, Mathf.CeilToInt(_boids.Length / threadGroupSize), 1, 1);
+        computeShader.Dispatch(_kernelIndex, Mathf.CeilToInt(_boids.Length / (float)threadGroupSize), 1, 1);
         boidsBuffer.GetData(_boids);
         boidsBuffer.Release();
 
+        Vector3 avoid = Vector3.zero;
         for (int i = 0; i < _boids.Length; i++)
         {
             var b = _boids[i];
             
-            Vector3 obstacleAvoidance = Vector3.zero;
             //check obstacle
             RaycastHit hitInfo;
             if (Physics.SphereCast(_boids[i].position, obstacleRadius, _boids[i].direction, out hitInfo, obstacleDist, obstacleMask))
@@ -104,21 +104,26 @@ public class GPUFlock : MonoBehaviour
                     Ray ray = new Ray(_boids[i].position, _boidsObjects[i].transform.TransformDirection(dir));
                     if (!Physics.SphereCast(ray, obstacleRadius, obstacleDist, obstacleMask))
                     {
-                        obstacleAvoidance = dir * obstacleModifyer;
+                        avoid = dir * obstacleModifyer;
                         break;
                     }
                 }
             }
             
-            Vector3 direction = (b.cohesion + b.align + b.separation + b.center + obstacleAvoidance).normalized;
+            Vector3 direction = (b.cohesion + b.align + b.separation + b.center + avoid).normalized;
+            Vector3 acceleration = (direction - b.velocity.normalized) * accelerationModifyer;
+            b.velocity += acceleration * Time.deltaTime;
             
-            float ip = Mathf.Exp(-1f * Time.deltaTime);
-            b.direction = Vector3.Lerp(direction, b.direction, ip);
-            b.position += Time.deltaTime * speed * b.direction;
+            float speed = Mathf.Clamp(b.velocity.magnitude, minSpeed, maxSpeed);
+            b.velocity = b.velocity.normalized * speed;
+            
+            //float ip = Mathf.Exp(-1f * Time.deltaTime);
+            b.position += b.velocity * Time.deltaTime;
+            b.direction = b.velocity.normalized;
             _boids[i] = b;
             
             _boidsObjects[i].transform.position = _boids[i].position;
-            _boidsObjects[i].transform.rotation = Quaternion.LookRotation(_boids[i].direction);
+            _boidsObjects[i].transform.rotation = Quaternion.Euler(_boids[i].direction);
         }
     }
 
@@ -138,10 +143,14 @@ public class GPUFlock : MonoBehaviour
 
     private void OnDrawGizmos()
     {
-        // for (int i = 0; i < directionNumber; i++)
+        // for(int i = 0; i < _boids.Length; i++)
         // {
-        //     Gizmos.DrawSphere(_avoidDirections[i]
-        //         , .01f);
+        //     RaycastHit hitInfo;
+        //     if (Physics.SphereCast(_boids[i].position, obstacleRadius, _boids[i].direction, out hitInfo, obstacleDist,
+        //             obstacleMask))
+        //         Gizmos.DrawRay(_boids[i].position, _boids[i].position + _boids[i].direction * obstacleDist);
+        //
+        //     
         // }
     }
 }
