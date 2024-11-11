@@ -12,13 +12,19 @@ struct Boid
 };
 RWStructuredBuffer<Boid> boids;
 
+struct Attractor
+{
+    float4 posIntensity; // w is intensity
+};
+RWStructuredBuffer<Attractor> attractors;
+
 int boidCount;
+int attractorCount;
 float separationModifyer;
 float cohesionModifyer;
 float alignModifyer;
 float centerModifyer;
 float deltaTime;
-float3 attractor;
 
 float speed;
 float repulsionRadius;
@@ -38,12 +44,13 @@ void CSMain (uint3 id : SV_DispatchThreadID)
     b.cohesion = float3(0.f, 0., 0.f); // move towards the center of the boid
     b.align = float3(0.f, 0., 0.f); // match the velocity of the boids
     b.separation = float3(0.f, 0., 0.f); // stay away from other boids
-    b.center = (attractor - b.position) * centerModifyer; // stay near the middle of the bounds
+    int attractedTo = floor(id.x / (boidCount / attractorCount));
+    b.center = (attractors[attractedTo].posIntensity.xyz - b.position) * attractors[attractedTo].posIntensity.w * centerModifyer; // stay near the middle of the bounds
 
     int nearby = 1;
     for(int i = 0; i < boidCount; i++)
     {
-        if(i == id.x)
+        if(i == int(id.x))
             continue;
         
         Boid other = boids[i];
@@ -55,7 +62,7 @@ void CSMain (uint3 id : SV_DispatchThreadID)
             b.align += other.direction;
 
             if(dist < repulsionRadius * repulsionRadius)
-                b.separation += (b.position - other.position) / dist;
+                b.separation += (b.position - other.position);
         }
     }
 
