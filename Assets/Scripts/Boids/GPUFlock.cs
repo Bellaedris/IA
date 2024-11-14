@@ -3,17 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEditor;
 using UnityEngine;
+using UnityEngine.Serialization;
 using Random = UnityEngine.Random;
 
 public struct BoidGPU
 {
     public Vector3 position, direction, velocity;
     public Vector3 cohesion, center, align, separation;
-}
-
-public struct Attractor
-{
-    public Vector4 positionIntensity; // packed position + intensity as float
 }
 
 public class GPUFlock : MonoBehaviour
@@ -43,51 +39,40 @@ public class GPUFlock : MonoBehaviour
 
     [Header("Audio")] 
     public bool useReactiveAudio;
-    public float bassSeparatorModifier;
-    public GameObject bassAttractor;
-    public GameObject bandAttractor;
-    public GameObject highAttractor;
-    public float BassSeparatorModifier
-    {
-        get => bassSeparatorModifier;
-        set => bassSeparatorModifier = value;
-    }
     
     [Header("Compute settings")]
     public ComputeShader computeShader;
     public int threadGroupSize = 64;
     
-    private Attractor[] _attractors;
-    [HideInInspector]
-    public float bassAttractorStrength;
+    [FormerlySerializedAs("bassAttractorStrength")] [HideInInspector]
+    public float bassStrength;
+    [FormerlySerializedAs("bandAttractorStrength")] [HideInInspector]
+    public float bandStrength;
+    [FormerlySerializedAs("highAttractorStrength")] [HideInInspector]
+    public float highStrength;
 
-    public float BassAttractorStrength
+    public float BassStrength
     {
-        get => bassAttractorStrength;
-        set => bassAttractorStrength = value;
+        get => bassStrength;
+        set => bassStrength = value;
     }
 
-    public float BandAttractorStrength
+    public float BandStrength
     {
-        get => bandAttractorStrength;
-        set => bandAttractorStrength = value;
+        get => bandStrength;
+        set => bandStrength = value;
     }
 
-    public float HighAttractorStrength
+    public float HighStrength
     {
-        get => highAttractorStrength;
-        set => highAttractorStrength = value;
+        get => highStrength;
+        set => highStrength = value;
     }
-
-    [HideInInspector]
-    public float bandAttractorStrength;
-    [HideInInspector]
-    public float highAttractorStrength;
     
     private BoidGPU[] _boids;
-    private GameObject[] _boidsObjects;
+    private BoidsGPU[] _boidsObjects;
 
-    private Vector3[] _avoidDirections;
+    public static Vector3[] avoidDirections;
 
     private int _kernelIndex;
     
@@ -96,14 +81,9 @@ public class GPUFlock : MonoBehaviour
     {
         _kernelIndex = computeShader.FindKernel("CSMain");
         
-        _boidsObjects = new GameObject[numberOfBoids];
+        _boidsObjects = new BoidsGPU[numberOfBoids];
         _boids = new BoidGPU[numberOfBoids];
-
-        _attractors = new Attractor[3];
-        _attractors[0].positionIntensity = new Vector4(bassAttractor.transform.position.x, bassAttractor.transform.position.y, bassAttractor.transform.position.z, 1);
-        _attractors[1].positionIntensity = new Vector4(bandAttractor.transform.position.x, bandAttractor.transform.position.y, bandAttractor.transform.position.z, 1);
-        _attractors[2].positionIntensity = new Vector4(highAttractor.transform.position.x, highAttractor.transform.position.y, highAttractor.transform.position.z, 1);
-
+        
         for (int i = 0; i < numberOfBoids; i++)
         {
             var boid = new BoidGPU();
@@ -111,7 +91,7 @@ public class GPUFlock : MonoBehaviour
             boid.direction = Random.insideUnitSphere.normalized;
             _boids[i] = boid;
             
-            _boidsObjects[i] = Instantiate(boidPrefab, boid.position, Quaternion.Euler(boid.direction));
+            _boidsObjects[i] = Instantiate(boidPrefab, boid.position, Quaternion.Euler(boid.direction)).GetComponent<BoidsGPU>();
         }
         
         GenerateRandomDirections(); 
@@ -120,37 +100,40 @@ public class GPUFlock : MonoBehaviour
     // Update is called once per frame
     void Update()
     {
-        // update attractor data
-        _attractors[0].positionIntensity.w = bassAttractorStrength;
-        _attractors[1].positionIntensity.w = bandAttractorStrength;
-        _attractors[2].positionIntensity.w = highAttractorStrength;
+        if (Input.GetKeyDown(KeyCode.Space))
+        {
+            separationModifyer = Random.Range(0f, 10f);
+            cohesionModifyer = Random.Range(0f, 10f);
+            alignModifyer = Random.Range(0f, 10f);
+            centerModifyer = Random.Range(0f, 1f);
+        }
         
         ComputeBuffer boidsBuffer = new ComputeBuffer(numberOfBoids, 84);
         boidsBuffer.SetData(_boids);
-        ComputeBuffer attractorBuffer = new ComputeBuffer(3, 16);
-        attractorBuffer.SetData(_attractors);
 
         float separation = separationModifyer;
+        float align = alignModifyer;
         if (useReactiveAudio)
-            separation *= bassSeparatorModifier;
-        
+        {
+            align *= bandStrength;
+            separation *= bassStrength;
+        }
+
         computeShader.SetBuffer(_kernelIndex, "boids", boidsBuffer);
-        computeShader.SetBuffer(_kernelIndex, "attractors", attractorBuffer);
         computeShader.SetInt("boidCount", boidsBuffer.count);
-        computeShader.SetInt("attractorCount", attractorBuffer.count);
         computeShader.SetFloat("separationModifyer", separation);
         computeShader.SetFloat("cohesionModifyer", this.cohesionModifyer);
-        computeShader.SetFloat("alignModifyer", this.alignModifyer);
+        computeShader.SetFloat("alignModifyer", align);
         computeShader.SetFloat("centerModifyer", this.centerModifyer);
         computeShader.SetFloat("deltaTime", Time.deltaTime);
         computeShader.SetFloat("speed", this.maxSpeed);
         computeShader.SetFloat("repulsionRadius", this.repulsionRadius);
         computeShader.SetFloat("flockRadius", this.flockRadius);
+        computeShader.SetVector("attractor", this.attractor.transform.position);
         
         computeShader.Dispatch(_kernelIndex, Mathf.CeilToInt(_boids.Length / (float)threadGroupSize), 1, 1);
         boidsBuffer.GetData(_boids);
         boidsBuffer.Release();
-        attractorBuffer.Release();
 
         Vector3 avoid = Vector3.zero;
         for (int i = 0; i < _boids.Length; i++)
@@ -162,7 +145,7 @@ public class GPUFlock : MonoBehaviour
             if (Physics.SphereCast(_boids[i].position, obstacleRadius, _boids[i].direction, out hitInfo, obstacleDist, obstacleMask))
             {
                 // sample a direction until we find a direction that does not collide
-                foreach (var dir in _avoidDirections)
+                foreach (var dir in avoidDirections)
                 {
                     Ray ray = new Ray(_boids[i].position, _boidsObjects[i].transform.TransformDirection(dir));
                     if (!Physics.SphereCast(ray, obstacleRadius, obstacleDist, obstacleMask))
@@ -188,22 +171,40 @@ public class GPUFlock : MonoBehaviour
             
             _boidsObjects[i].transform.position = _boids[i].position;
             _boidsObjects[i].transform.rotation = Quaternion.LookRotation(_boids[i].direction);
+            switch (_boidsObjects[i].boidGroup)
+            {
+                case BoidGroup.Bass:
+                    _boidsObjects[i].velocity = bassStrength;
+                    break;
+                case BoidGroup.Mid:
+                    _boidsObjects[i].velocity = bandStrength;
+                    break;
+                case BoidGroup.High:
+                    _boidsObjects[i].velocity = highStrength;
+                    break;
+            }
+            
         }
     }
 
     void GenerateRandomDirections()
     {
         int numberOfDirections = 300;
-        _avoidDirections = new Vector3[numberOfDirections];
+        avoidDirections = new Vector3[numberOfDirections];
         for (int i = 0; i < numberOfDirections; i++)
         {
             float index = i + .5f;
             float phi = Mathf.Acos(1f - 2f * index / numberOfDirections);
             float theta = Mathf.PI * 1f + Mathf.Pow(5f, .5f) * i;
-            _avoidDirections[i] = new Vector3(Mathf.Cos(theta) * Mathf.Sin(phi), Mathf.Sin(theta) * Mathf.Sin(phi),
+            avoidDirections[i] = new Vector3(Mathf.Cos(theta) * Mathf.Sin(phi), Mathf.Sin(theta) * Mathf.Sin(phi),
                 Mathf.Cos(phi)).normalized;
         }
     }
+    
+    // Vector3 SteerTowards (Vector3 vector) {
+    //     Vector3 v = vector.normalized * maxSpeed - velocity;
+    //     return Vector3.ClampMagnitude (v, settings.maxSteerForce);
+    // }
 
     private void OnDrawGizmos()
     {

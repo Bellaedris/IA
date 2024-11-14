@@ -58,6 +58,12 @@ PrefabInstance:
       propertyPath: m_LocalEulerAnglesHint.z
       value: 0
       objectReference: {fileID: 0}
+    - target: {fileID: -681667656727170516, guid: a489cc58fbf912847bda1d830d3afac1,
+        type: 3}
+      propertyPath: m_Materials.Array.data[0]
+      value: 
+      objectReference: {fileID: -876546973899608171, guid: ccc72f2a232f55948bf422b6d94f0a45,
+        type: 3}
     - target: {fileID: -153482859162321178, guid: a489cc58fbf912847bda1d830d3afac1,
         type: 3}
       propertyPath: m_LocalScale.x
@@ -122,6 +128,10 @@ PrefabInstance:
     m_RemovedGameObjects: []
     m_AddedGameObjects: []
     m_AddedComponents:
+    - targetCorrespondingSourceObject: {fileID: 919132149155446097, guid: a489cc58fbf912847bda1d830d3afac1,
+        type: 3}
+      insertIndex: -1
+      addedObject: {fileID: 1254307069455476614}
     - targetCorrespondingSourceObject: {fileID: 6971571394025640556, guid: a489cc58fbf912847bda1d830d3afac1,
         type: 3}
       insertIndex: -1
@@ -154,3 +164,23 @@ SphereCollider:
   serializedVersion: 3
   m_Radius: 2845.5
   m_Center: {x: -4213.81, y: 966, z: -2168.6584}
+--- !u!1 &6156346974601885665 stripped
+GameObject:
+  m_CorrespondingSourceObject: {fileID: 919132149155446097, guid: a489cc58fbf912847bda1d830d3afac1,
+    type: 3}
+  m_PrefabInstance: {fileID: 6462336871341951664}
+  m_PrefabAsset: {fileID: 0}
+--- !u!114 &1254307069455476614
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 6156346974601885665}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ea5509a9063a214ab65e0a4a4943301, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  velocity: 0
+  boidGroup: 0
