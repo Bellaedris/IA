@@ -17,16 +17,18 @@ public class FSM : MonoBehaviour
     public GameObject[] patrolPoints;
     
     private PlayerController player; 
-    private AgentStates _currentState;
+    public AgentStates _currentState;
 
     private Vector3 _lastPlayerPos;
     
     private int _patrolPointIndex;
+    private MeshRenderer _renderer;
     
     // Start is called before the first frame update
     void Start()
     {
         player = FindObjectOfType<PlayerController>();
+        _renderer = GetComponent<MeshRenderer>();
         _currentState = AgentStates.Patrol;
         _patrolPointIndex = 0;
     }
@@ -50,15 +52,17 @@ public class FSM : MonoBehaviour
 
     private void Patrol()
     {
-        if(CanSeePlayer())
+        if (CanSeePlayer())
         {
             _currentState = AgentStates.Chase;
-            Debug.Log("Chase");
+            _renderer.sharedMaterial.color = Color.red;
         }
-        
+
         var dir = (patrolPoints[_patrolPointIndex].transform.position - transform.position).normalized;
+        dir.y = 0;
         transform.position = Vector3.MoveTowards(transform.position, patrolPoints[_patrolPointIndex].transform.position, Time.deltaTime);
-        transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+        if (dir.sqrMagnitude > 0.01f)
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 5f);
 
         if (transform.position == patrolPoints[_patrolPointIndex].transform.position)
             _patrolPointIndex = (_patrolPointIndex + 1) % patrolPoints.Length;
@@ -69,40 +73,48 @@ public class FSM : MonoBehaviour
         if (!CanSeePlayer())
         {
             _currentState = AgentStates.Search;
-            Debug.Log("Search");
+            _renderer.sharedMaterial.color = Color.green;
             return;
         }
 
         _lastPlayerPos = player.transform.position;
-        var dir = ( - transform.position).normalized;
+        _lastPlayerPos.y = 1;
+        var dir = (player.transform.position - transform.position).normalized;
+        dir.y = 0;
         transform.position = Vector3.MoveTowards(transform.position, player.transform.position, Time.deltaTime);
-        transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+        if (dir.sqrMagnitude > 0.01f)
+            transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 5f);
     }
 
     private void Search()
     {
+        if (CanSeePlayer())
+        {
+            _currentState = AgentStates.Chase;
+            _renderer.sharedMaterial.color = Color.red;
+            return;
+        }
+
         if (transform.position == _lastPlayerPos)
         {
             _currentState = AgentStates.Patrol;
-            Debug.Log("Patrol");
+            _renderer.sharedMaterial.color = Color.white;
         }
         else
         {
             var dir = (_lastPlayerPos - transform.position).normalized;
-            transform.Translate(Time.deltaTime * dir, Space.World);
-            transform.rotation = Quaternion.LookRotation(dir, Vector3.up);
+            dir.y = 0;
+            transform.position = Vector3.MoveTowards(transform.position, _lastPlayerPos, Time.deltaTime);
+            if (dir.sqrMagnitude > 0.01f)
+                transform.rotation = Quaternion.Slerp(transform.rotation, Quaternion.LookRotation(dir), Time.deltaTime * 5f);
         }
     }
 
     private bool CanSeePlayer()
     {
         Vector3 dir = player.transform.position - transform.position;
-        float angle = Vector3.Angle(dir, transform.forward);
+        float angle = Vector2.Angle(dir, transform.forward);
 
-        if (angle < viewAngle)
-            if (dir.sqrMagnitude < viewDistance * viewDistance)
-                return true;
-
-        return false;
+        return (angle <= viewAngle && dir.sqrMagnitude < viewDistance * viewDistance);
     }
 }

@@ -106,6 +106,8 @@ public class GPUFlock : MonoBehaviour
             cohesionModifyer = Random.Range(0f, 10f);
             alignModifyer = Random.Range(0f, 10f);
             centerModifyer = Random.Range(0f, 1f);
+            repulsionRadius = Random.Range(2f, 10f);
+            flockRadius = repulsionRadius * Random.Range(1.5f, 3f);
         }
         
         ComputeBuffer boidsBuffer = new ComputeBuffer(numberOfBoids, 84);
